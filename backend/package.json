@@ -16,7 +16,7 @@
     "test:api": "jest --testPathPattern=api-integration",
     "test:coverage-report": "jest --testPathPattern=coverage-report",
     "test:all": "jest --coverage --verbose",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src --ext .ts --max-warnings 10",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write src/**/*.{ts,json,md}",
     "db:setup": "ts-node scripts/setup-appwrite.ts",
