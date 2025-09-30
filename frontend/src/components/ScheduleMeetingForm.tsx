@@ -20,9 +20,10 @@ import {
   Group as GroupIcon,
   Notes as NotesIcon,
 } from '@mui/icons-material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// Temporarily disabled date picker for deployment
+// import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Company } from '../types/company';
 import { companyService } from '../services/companyService';
 import { meetingService, CreateMeetingData } from '../services/meetingService';
@@ -250,7 +251,7 @@ export const ScheduleMeetingForm: React.FC<ScheduleMeetingFormProps> = ({
   const selectedCompany = companies.find((c) => c.id === formData.companyId);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
+    // <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -324,20 +325,19 @@ export const ScheduleMeetingForm: React.FC<ScheduleMeetingFormProps> = ({
                 }}
               >
                 <Box sx={{ flex: 1 }}>
-                  <DateTimePicker
+                  <TextField
+                    fullWidth
                     label="Meeting Date & Time *"
-                    value={formData.scheduledDate}
-                    onChange={(date) =>
-                      handleFieldChange('scheduledDate', date)
+                    type="datetime-local"
+                    value={formData.scheduledDate ? formData.scheduledDate.toISOString().slice(0, 16) : ''}
+                    onChange={(e) =>
+                      handleFieldChange('scheduledDate', e.target.value ? new Date(e.target.value) : null)
                     }
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        error: !!errors.scheduledDate,
-                        helperText: errors.scheduledDate,
-                      },
+                    error={!!errors.scheduledDate}
+                    helperText={errors.scheduledDate}
+                    InputLabelProps={{
+                      shrink: true,
                     }}
-                    minDateTime={new Date()}
                   />
                 </Box>
 
@@ -566,6 +566,6 @@ export const ScheduleMeetingForm: React.FC<ScheduleMeetingFormProps> = ({
           </Box>
         </Paper>
       </Box>
-    </LocalizationProvider>
+    // </LocalizationProvider>
   );
 };
