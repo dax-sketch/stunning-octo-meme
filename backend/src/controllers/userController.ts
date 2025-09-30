@@ -176,10 +176,11 @@ export class UserController {
         data: { 
           user: updatedUser,
           preferences: {
-            emailNotifications: updatedUser.emailNotifications,
-            smsNotifications: updatedUser.smsNotifications,
-            meetingReminders: updatedUser.meetingReminders,
-            auditReminders: updatedUser.auditReminders
+            // DISABLED FOR NOW - Notification preferences
+            emailNotifications: false, // updatedUser.emailNotifications,
+            smsNotifications: false, // updatedUser.smsNotifications,
+            meetingReminders: false, // updatedUser.meetingReminders,
+            auditReminders: false // updatedUser.auditReminders
           }
         },
         message: 'Notification preferences updated successfully'
@@ -250,38 +251,38 @@ export class UserController {
 
       const results: { email?: boolean; sms?: boolean } = {};
 
-      // Send test notifications based on type
+      // DISABLED FOR NOW - Send test notifications based on type
       if (value.type === 'email' || value.type === 'both') {
-        if (user.emailNotifications) {
-          try {
-            await EmailService.sendEmail({
-              to: user.email,
-              subject: 'Test Notification - Client Management Platform',
-              text: 'This is a test notification to verify your email settings are working correctly.'
-            });
-            results.email = true;
-          } catch (emailError) {
-            results.email = false;
-          }
-        } else {
+        // if (user.emailNotifications) {
+        //   try {
+        //     await EmailService.sendEmail({
+        //       to: user.email,
+        //       subject: 'Test Notification - Client Management Platform',
+        //       text: 'This is a test notification to verify your email settings are working correctly.'
+        //     });
+        //     results.email = true;
+        //   } catch (emailError) {
+        //     results.email = false;
+        //   }
+        // } else {
           results.email = false;
-        }
+        // }
       }
 
       if (value.type === 'sms' || value.type === 'both') {
-        if (user.smsNotifications) {
-          try {
-            await SMSService.sendSMS({
-              to: user.phoneNumber,
-              message: 'Test notification from Client Management Platform. Your SMS settings are working correctly.'
-            });
-            results.sms = true;
-          } catch (smsError) {
-            results.sms = false;
-          }
-        } else {
+        // if (user.smsNotifications) {
+        //   try {
+        //     await SMSService.sendSMS({
+        //       to: user.phoneNumber,
+        //       message: 'Test notification from Client Management Platform. Your SMS settings are working correctly.'
+        //     });
+        //     results.sms = true;
+        //   } catch (smsError) {
+        //     results.sms = false;
+        //   }
+        // } else {
           results.sms = false;
-        }
+        // }
       }
 
       res.status(200).json({

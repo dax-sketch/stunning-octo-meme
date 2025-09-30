@@ -386,10 +386,11 @@ export class NotificationController {
       res.json({
         success: true,
         data: {
-          emailNotifications: user.emailNotifications,
-          smsNotifications: user.smsNotifications,
-          meetingReminders: user.meetingReminders,
-          auditReminders: user.auditReminders
+          // DISABLED FOR NOW - Notification preferences
+          emailNotifications: false, // user.emailNotifications,
+          smsNotifications: false, // user.smsNotifications,
+          meetingReminders: false, // user.meetingReminders,
+          auditReminders: false // user.auditReminders
         }
       });
     } catch (error) {
@@ -425,10 +426,11 @@ export class NotificationController {
       res.json({
         success: true,
         data: {
-          emailNotifications: updatedUser.emailNotifications,
-          smsNotifications: updatedUser.smsNotifications,
-          meetingReminders: updatedUser.meetingReminders,
-          auditReminders: updatedUser.auditReminders
+          // DISABLED FOR NOW - Notification preferences
+          emailNotifications: false, // updatedUser.emailNotifications,
+          smsNotifications: false, // updatedUser.smsNotifications,
+          meetingReminders: false, // updatedUser.meetingReminders,
+          auditReminders: false // updatedUser.auditReminders
         }
       });
     } catch (error) {

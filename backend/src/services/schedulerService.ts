@@ -138,7 +138,7 @@ export class SchedulerService {
 
             // Get CEO users
             const ceoUsers = await UserModel.findByRole(USER_ROLES.CEO);
-            const ceosWithReminders = ceoUsers.filter(user => user.meetingReminders);
+            const ceosWithReminders = ceoUsers.filter(user => false); // user.meetingReminders - DISABLED FOR NOW
 
             if (ceosWithReminders.length === 0) {
                 console.log('No CEO users found with meeting reminders enabled');
@@ -244,39 +244,43 @@ export class SchedulerService {
         scheduledFor: Date,
         customMessage?: string
     ): Promise<void> {
-        try {
-            // Validate that user exists and has meeting reminders enabled
-            const user = await UserModel.findById(userId);
-            if (!user) {
-                throw new Error('User not found');
-            }
+        // DISABLED FOR NOW - All meeting reminders are disabled
+        console.log(`Meeting reminder disabled for user ${userId} and company ${companyId} at ${scheduledFor}`);
+        return;
+        
+        // try {
+        //     // Validate that user exists and has meeting reminders enabled
+        //     const user = await UserModel.findById(userId);
+        //     if (!user) {
+        //         throw new Error('User not found');
+        //     }
 
-            if (!user.meetingReminders) {
-                console.log(`User ${user.username} has meeting reminders disabled`);
-                return;
-            }
+        //     if (!user.meetingReminders) {
+        //         console.log(`User ${user.username} has meeting reminders disabled`);
+        //         return;
+        //     }
 
-            // Validate that company exists
-            const company = await CompanyModel.findById(companyId);
-            if (!company) {
-                throw new Error('Company not found');
-            }
+        //     // Validate that company exists
+        //     const company = await CompanyModel.findById(companyId);
+        //     if (!company) {
+        //         throw new Error('Company not found');
+        //     }
 
-            // Create the notification
-            await NotificationService.createNotification({
-                userId,
-                type: NOTIFICATION_TYPES.MEETING_REMINDER,
-                title: 'Scheduled Meeting Reminder',
-                message: customMessage || `Meeting reminder for ${company.name}`,
-                scheduledFor,
-                relatedCompanyId: companyId
-            });
+        //     // Create the notification
+        //     await NotificationService.createNotification({
+        //         userId,
+        //         type: NOTIFICATION_TYPES.MEETING_REMINDER,
+        //         title: 'Scheduled Meeting Reminder',
+        //         message: customMessage || `Meeting reminder for ${company.name}`,
+        //         scheduledFor,
+        //         relatedCompanyId: companyId
+        //     });
 
-            console.log(`Scheduled meeting reminder for user ${user.username} and company ${company.name} at ${scheduledFor}`);
-        } catch (error) {
-            console.error('Error scheduling meeting reminder:', error);
-            throw error;
-        }
+        //     console.log(`Scheduled meeting reminder for user ${user.username} and company ${company.name} at ${scheduledFor}`);
+        // } catch (error) {
+        //     console.error('Error scheduling meeting reminder:', error);
+        //     throw error;
+        // }
     }
 
     /**

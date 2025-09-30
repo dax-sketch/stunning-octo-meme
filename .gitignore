@@ -8,17 +8,38 @@ dist/
 */build/
 */dist/
 
-# Environment variables
+# Environment variables (NEVER commit these!)
 .env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
-*/.env
-*/.env.local
-*/.env.development.local
-*/.env.test.local
-*/.env.production.local
+
+# Backend environment files
+backend/.env
+backend/.env.local
+backend/.env.development
+backend/.env.development.local
+backend/.env.test
+backend/.env.test.local
+backend/.env.production
+backend/.env.production.local
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.development.local
+frontend/.env.test
+frontend/.env.test.local
+frontend/.env.production
+frontend/.env.production.local
+
+# But keep example files
+!**/.env.example
 
 # Logs
 npm-debug.log*

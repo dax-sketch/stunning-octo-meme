@@ -52,23 +52,23 @@ export class NotificationService {
             let emailSent = false;
             let smsSent = false;
 
-            // Send email if user has email notifications enabled
-            if (user.emailNotifications) {
-                try {
-                    emailSent = await this.sendEmailNotification(notification, user, company);
-                } catch (error: any) {
-                    console.error('Email notification error:', error);
-                }
-            }
+            // DISABLED FOR NOW - Send email if user has email notifications enabled
+            // if (user.emailNotifications) {
+            //     try {
+            //         emailSent = await this.sendEmailNotification(notification, user, company);
+            //     } catch (error: any) {
+            //         console.error('Email notification error:', error);
+            //     }
+            // }
 
-            // Send SMS if user has SMS notifications enabled
-            if (user.smsNotifications) {
-                try {
-                    smsSent = await this.sendSMSNotification(notification, user, company);
-                } catch (error: any) {
-                    console.error('SMS notification error:', error);
-                }
-            }
+            // DISABLED FOR NOW - Send SMS if user has SMS notifications enabled
+            // if (user.smsNotifications) {
+            //     try {
+            //         smsSent = await this.sendSMSNotification(notification, user, company);
+            //     } catch (error: any) {
+            //         console.error('SMS notification error:', error);
+            //     }
+            // }
 
             // Mark notification as sent if at least one method succeeded
             if (emailSent || smsSent) {
@@ -87,11 +87,11 @@ export class NotificationService {
     private static shouldSendNotification(type: NotificationType, user: AppwriteUser): boolean {
         switch (type) {
             case NOTIFICATION_TYPES.MEETING_REMINDER:
-                return user.meetingReminders;
+                return false; // user.meetingReminders; - DISABLED FOR NOW
             case NOTIFICATION_TYPES.AUDIT_DUE:
-                return user.auditReminders;
+                return false; // user.auditReminders; - DISABLED FOR NOW
             case NOTIFICATION_TYPES.COMPANY_MILESTONE:
-                return true; // Always send milestone notifications
+                return false; // Always send milestone notifications - DISABLED FOR NOW
             default:
                 return true;
         }
