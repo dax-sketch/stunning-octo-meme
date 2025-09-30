@@ -252,320 +252,315 @@ export const ScheduleMeetingForm: React.FC<ScheduleMeetingFormProps> = ({
 
   return (
     // <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Button startIcon={<ArrowBackIcon />} onClick={onBack}>
-            Back to Dashboard
-          </Button>
+    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={onBack}>
+          Back to Dashboard
+        </Button>
+      </Box>
+
+      <Paper elevation={2} sx={{ p: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+          <EventIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+          <Typography variant="h4" component="h1">
+            Schedule Meeting
+          </Typography>
         </Box>
 
-        <Paper elevation={2} sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <EventIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-            <Typography variant="h4" component="h1">
-              Schedule Meeting
-            </Typography>
-          </Box>
+        {submitError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {submitError}
+          </Alert>
+        )}
 
-          {submitError && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {submitError}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {/* Company Selection */}
-              <FormControl fullWidth error={!!errors.companyId}>
-                <InputLabel>Company *</InputLabel>
-                <Select
-                  value={formData.companyId}
-                  onChange={(e) =>
-                    handleFieldChange('companyId', e.target.value)
-                  }
-                  label="Company *"
-                  disabled={loadingCompanies}
-                >
-                  {loadingCompanies ? (
-                    <MenuItem disabled>
-                      <CircularProgress size={20} sx={{ mr: 1 }} />
-                      Loading companies...
-                    </MenuItem>
-                  ) : (
-                    companies.map((company) => (
-                      <MenuItem key={company.id} value={company.id}>
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          {company.name}
-                          <Chip
-                            label={company.tier.replace('TIER_', 'Tier ')}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </Box>
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-                {errors.companyId && (
-                  <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                    {errors.companyId}
-                  </Typography>
-                )}
-              </FormControl>
-
-              {/* Date and Time + Duration Row */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 2,
-                  flexDirection: { xs: 'column', md: 'row' },
-                }}
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Company Selection */}
+            <FormControl fullWidth error={!!errors.companyId}>
+              <InputLabel>Company *</InputLabel>
+              <Select
+                value={formData.companyId}
+                onChange={(e) => handleFieldChange('companyId', e.target.value)}
+                label="Company *"
+                disabled={loadingCompanies}
               >
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    fullWidth
-                    label="Meeting Date & Time *"
-                    type="datetime-local"
-                    value={formData.scheduledDate ? formData.scheduledDate.toISOString().slice(0, 16) : ''}
-                    onChange={(e) =>
-                      handleFieldChange('scheduledDate', e.target.value ? new Date(e.target.value) : null)
-                    }
-                    error={!!errors.scheduledDate}
-                    helperText={errors.scheduledDate}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                  />
-                </Box>
-
-                <Box sx={{ flex: 1 }}>
-                  <FormControl fullWidth error={!!errors.duration}>
-                    <InputLabel>Duration *</InputLabel>
-                    <Select
-                      value={formData.duration}
-                      onChange={(e) =>
-                        handleFieldChange('duration', e.target.value)
-                      }
-                      label="Duration *"
-                      startAdornment={
-                        <TimeIcon sx={{ mr: 1, color: 'action.active' }} />
-                      }
-                    >
-                      {DURATION_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.duration && (
-                      <Typography
-                        variant="caption"
-                        color="error"
-                        sx={{ mt: 1 }}
+                {loadingCompanies ? (
+                  <MenuItem disabled>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Loading companies...
+                  </MenuItem>
+                ) : (
+                  companies.map((company) => (
+                    <MenuItem key={company.id} value={company.id}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
                       >
-                        {errors.duration}
-                      </Typography>
-                    )}
-                  </FormControl>
-                </Box>
-              </Box>
-
-              {/* Attendees */}
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <GroupIcon />
-                  Attendees *
+                        {company.name}
+                        <Chip
+                          label={company.tier.replace('TIER_', 'Tier ')}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Box>
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+              {errors.companyId && (
+                <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                  {errors.companyId}
                 </Typography>
-
-                {/* Select from existing users */}
-                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                  <FormControl sx={{ flex: 1 }}>
-                    <InputLabel>Select User</InputLabel>
-                    <Select
-                      value={selectedUser}
-                      onChange={(e) => setSelectedUser(e.target.value)}
-                      label="Select User"
-                      disabled={loadingUsers}
-                    >
-                      {loadingUsers ? (
-                        <MenuItem disabled>
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                          Loading users...
-                        </MenuItem>
-                      ) : (
-                        users.map((user) => (
-                          <MenuItem key={user.id} value={user.id}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                              }}
-                            >
-                              {user.username}
-                              <Chip
-                                label={user.role}
-                                size="small"
-                                variant="outlined"
-                              />
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                ({user.email})
-                              </Typography>
-                            </Box>
-                          </MenuItem>
-                        ))
-                      )}
-                    </Select>
-                  </FormControl>
-                  <Button
-                    variant="outlined"
-                    onClick={handleAddUserAttendee}
-                    disabled={!selectedUser}
-                  >
-                    Add User
-                  </Button>
-                </Box>
-
-                {/* Manual attendee input */}
-                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                  <TextField
-                    fullWidth
-                    placeholder="Or enter attendee name/email manually"
-                    value={attendeeInput}
-                    onChange={(e) => setAttendeeInput(e.target.value)}
-                    onKeyPress={handleAttendeeKeyPress}
-                    error={!!errors.attendees}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={handleAddAttendee}
-                    disabled={!attendeeInput.trim()}
-                  >
-                    Add
-                  </Button>
-                </Box>
-
-                {formData.attendees.length > 0 && (
-                  <Box
-                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}
-                  >
-                    {formData.attendees.map((attendee, index) => (
-                      <Chip
-                        key={index}
-                        label={attendee}
-                        onDelete={() => handleRemoveAttendee(attendee)}
-                        color="primary"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                )}
-
-                {errors.attendees && (
-                  <Typography variant="caption" color="error">
-                    {errors.attendees}
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Notes */}
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Meeting Notes"
-                placeholder="Please include contact number and google meet link"
-                value={formData.notes}
-                onChange={(e) => handleFieldChange('notes', e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <NotesIcon
-                      sx={{
-                        mr: 1,
-                        color: 'action.active',
-                        alignSelf: 'flex-start',
-                        mt: 1,
-                      }}
-                    />
-                  ),
-                }}
-                error={!!errors.notes}
-                helperText={errors.notes}
-              />
-
-              {/* Selected Company Info */}
-              {selectedCompany && (
-                <Paper sx={{ p: 2, backgroundColor: 'grey.50' }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Meeting Details Summary:
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Company:</strong> {selectedCompany.name} (
-                    {selectedCompany.tier.replace('TIER_', 'Tier ')})
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Contact:</strong> {selectedCompany.email} |{' '}
-                    {selectedCompany.phoneNumber}
-                  </Typography>
-                  {formData.scheduledDate && (
-                    <Typography variant="body2">
-                      <strong>Scheduled:</strong>{' '}
-                      {formData.scheduledDate.toLocaleString()}
-                    </Typography>
-                  )}
-                  {formData.duration && (
-                    <Typography variant="body2">
-                      <strong>Duration:</strong>{' '}
-                      {
-                        DURATION_OPTIONS.find(
-                          (d) => d.value === formData.duration
-                        )?.label
-                      }
-                    </Typography>
-                  )}
-                </Paper>
               )}
-            </Box>
+            </FormControl>
 
-            {/* Submit Buttons */}
+            {/* Date and Time + Duration Row */}
             <Box
               sx={{
                 display: 'flex',
-                justifyContent: 'flex-end',
                 gap: 2,
-                mt: 4,
+                flexDirection: { xs: 'column', md: 'row' },
               }}
             >
-              <Button
-                variant="outlined"
-                onClick={onBack}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={isSubmitting}
-                startIcon={
-                  isSubmitting ? <CircularProgress size={20} /> : <EventIcon />
-                }
-              >
-                {isSubmitting ? 'Scheduling...' : 'Schedule Meeting'}
-              </Button>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Meeting Date & Time *"
+                  type="datetime-local"
+                  value={
+                    formData.scheduledDate
+                      ? formData.scheduledDate.toISOString().slice(0, 16)
+                      : ''
+                  }
+                  onChange={(e) =>
+                    handleFieldChange(
+                      'scheduledDate',
+                      e.target.value ? new Date(e.target.value) : null
+                    )
+                  }
+                  error={!!errors.scheduledDate}
+                  helperText={errors.scheduledDate}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
+                <FormControl fullWidth error={!!errors.duration}>
+                  <InputLabel>Duration *</InputLabel>
+                  <Select
+                    value={formData.duration}
+                    onChange={(e) =>
+                      handleFieldChange('duration', e.target.value)
+                    }
+                    label="Duration *"
+                    startAdornment={
+                      <TimeIcon sx={{ mr: 1, color: 'action.active' }} />
+                    }
+                  >
+                    {DURATION_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.duration && (
+                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                      {errors.duration}
+                    </Typography>
+                  )}
+                </FormControl>
+              </Box>
             </Box>
+
+            {/* Attendees */}
+            <Box>
+              <Typography
+                variant="subtitle1"
+                sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
+                <GroupIcon />
+                Attendees *
+              </Typography>
+
+              {/* Select from existing users */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <FormControl sx={{ flex: 1 }}>
+                  <InputLabel>Select User</InputLabel>
+                  <Select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    label="Select User"
+                    disabled={loadingUsers}
+                  >
+                    {loadingUsers ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Loading users...
+                      </MenuItem>
+                    ) : (
+                      users.map((user) => (
+                        <MenuItem key={user.id} value={user.id}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            {user.username}
+                            <Chip
+                              label={user.role}
+                              size="small"
+                              variant="outlined"
+                            />
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              ({user.email})
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="outlined"
+                  onClick={handleAddUserAttendee}
+                  disabled={!selectedUser}
+                >
+                  Add User
+                </Button>
+              </Box>
+
+              {/* Manual attendee input */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Or enter attendee name/email manually"
+                  value={attendeeInput}
+                  onChange={(e) => setAttendeeInput(e.target.value)}
+                  onKeyPress={handleAttendeeKeyPress}
+                  error={!!errors.attendees}
+                />
+                <Button
+                  variant="outlined"
+                  onClick={handleAddAttendee}
+                  disabled={!attendeeInput.trim()}
+                >
+                  Add
+                </Button>
+              </Box>
+
+              {formData.attendees.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                  {formData.attendees.map((attendee, index) => (
+                    <Chip
+                      key={index}
+                      label={attendee}
+                      onDelete={() => handleRemoveAttendee(attendee)}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              )}
+
+              {errors.attendees && (
+                <Typography variant="caption" color="error">
+                  {errors.attendees}
+                </Typography>
+              )}
+            </Box>
+
+            {/* Notes */}
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Meeting Notes"
+              placeholder="Please include contact number and google meet link"
+              value={formData.notes}
+              onChange={(e) => handleFieldChange('notes', e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <NotesIcon
+                    sx={{
+                      mr: 1,
+                      color: 'action.active',
+                      alignSelf: 'flex-start',
+                      mt: 1,
+                    }}
+                  />
+                ),
+              }}
+              error={!!errors.notes}
+              helperText={errors.notes}
+            />
+
+            {/* Selected Company Info */}
+            {selectedCompany && (
+              <Paper sx={{ p: 2, backgroundColor: 'grey.50' }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Meeting Details Summary:
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Company:</strong> {selectedCompany.name} (
+                  {selectedCompany.tier.replace('TIER_', 'Tier ')})
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Contact:</strong> {selectedCompany.email} |{' '}
+                  {selectedCompany.phoneNumber}
+                </Typography>
+                {formData.scheduledDate && (
+                  <Typography variant="body2">
+                    <strong>Scheduled:</strong>{' '}
+                    {formData.scheduledDate.toLocaleString()}
+                  </Typography>
+                )}
+                {formData.duration && (
+                  <Typography variant="body2">
+                    <strong>Duration:</strong>{' '}
+                    {
+                      DURATION_OPTIONS.find(
+                        (d) => d.value === formData.duration
+                      )?.label
+                    }
+                  </Typography>
+                )}
+              </Paper>
+            )}
           </Box>
-        </Paper>
-      </Box>
+
+          {/* Submit Buttons */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 2,
+              mt: 4,
+            }}
+          >
+            <Button variant="outlined" onClick={onBack} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={isSubmitting}
+              startIcon={
+                isSubmitting ? <CircularProgress size={20} /> : <EventIcon />
+              }
+            >
+              {isSubmitting ? 'Scheduling...' : 'Schedule Meeting'}
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
     // </LocalizationProvider>
   );
 };

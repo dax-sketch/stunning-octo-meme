@@ -8,12 +8,12 @@ const getApiUrl = (): string => {
     if (process.env.REACT_APP_API_URL) {
       return process.env.REACT_APP_API_URL;
     }
-    
+
     // Fallback to a production URL (update this with your Render URL)
     // Replace this with your actual Render backend URL
     return 'https://stunning-octo-meme-goc0.onrender.com';
   }
-  
+
   // Development fallback
   return 'http://localhost:3001';
 };
