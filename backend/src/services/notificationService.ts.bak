@@ -1,0 +1,396 @@
+import { NotificationModel, CreateNotificationData } from '../models/AppwriteNotification';
+// NotificationLog model not yet implemented
+import { EmailService } from './emailService';
+import { SMSService } from './smsService';
+import { NOTIFICATION_TYPES, type NotificationType } from '../config/appwrite';
+
+export interface NotificationPreferences {
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  meetingReminders: boolean;
+  auditReminders: boolean;
+}
+
+export interface UserWithPreferences {
+  id: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  meetingReminders: boolean;
+  auditReminders: boolean;
+}
+
+export class NotificationService {
+  static async createNotification(data: CreateNotificationData): Promise<Notification> {
+    return await NotificationModel.create(data);
+  }
+
+  static async sendNotification(notification: Notification & { 
+    user: UserWithPreferences;
+    relatedCompany?: { id: string; name: string } | null;
+  }): Promise<boolean> {
+    const { user, type, title, message, relatedCompany } = notification;
+    
+    // Check if user wants this type of notification
+    if (!this.shouldSendNotification(type, user)) {
+      console.log(`User ${user.username} has disabled ${type} notifications`);
+      return false;
+    }
+
+    let emailSent = false;
+    let smsSent = false;
+
+    // Send email if user has email notifications enabled
+    if (user.emailNotifications) {
+      try {
+        await NotificationLogModel.logPending(notification.id, 'EMAIL');
+        emailSent = await this.sendEmailNotification(notification);
+        
+        if (emailSent) {
+          await NotificationLogModel.logSuccess(notification.id, 'EMAIL', {
+            recipient: user.email,
+            subject: title,
+            type: type
+          });
+        } else {
+          await NotificationLogModel.logFailure(notification.id, 'EMAIL', 'Email sending failed');
+        }
+      } catch (error: any) {
+        await NotificationLogModel.logFailure(notification.id, 'EMAIL', error.message);
+        console.error('Email notification error:', error);
+      }
+    }
+
+    // Send SMS if user has SMS notifications enabled
+    if (user.smsNotifications) {
+      try {
+        await NotificationLogModel.logPending(notification.id, 'SMS');
+        smsSent = await this.sendSMSNotification(notification);
+        
+        if (smsSent) {
+          await NotificationLogModel.logSuccess(notification.id, 'SMS', {
+            recipient: user.phoneNumber,
+            type: type
+          });
+        } else {
+          await NotificationLogModel.logFailure(notification.id, 'SMS', 'SMS sending failed');
+        }
+      } catch (error: any) {
+        await NotificationLogModel.logFailure(notification.id, 'SMS', error.message);
+        console.error('SMS notification error:', error);
+      }
+    }
+
+    // Mark notification as sent if at least one method succeeded
+    if (emailSent || smsSent) {
+      await NotificationModel.update(notification.id, { sentAt: new Date() });
+      return true;
+    }
+
+    return false;
+  }
+
+  private static shouldSendNotification(type: NotificationType, user: UserWithPreferences): boolean {
+    switch (type) {
+      case 'MEETING_REMINDER':
+        return user.meetingReminders;
+      case 'AUDIT_DUE':
+        return user.auditReminders;
+      case 'COMPANY_MILESTONE':
+        return true; // Always send milestone notifications
+      default:
+        return true;
+    }
+  }
+
+  private static async sendEmailNotification(notification: Notification & { 
+    user: UserWithPreferences;
+    relatedCompany?: { id: string; name: string } | null;
+  }): Promise<boolean> {
+    const { user, type, title, message, relatedCompany } = notification;
+    const companyName = relatedCompany?.name || 'Unknown Company';
+
+    switch (type) {
+      case 'MEETING_REMINDER':
+        return await EmailService.sendMeetingReminder(
+          user.email,
+          user.username,
+          companyName,
+          notification.scheduledFor
+        );
+      case 'AUDIT_DUE':
+        return await EmailService.sendAuditReminder(
+          user.email,
+          user.username,
+          companyName,
+          notification.scheduledFor
+        );
+      case 'COMPANY_MILESTONE':
+        return await EmailService.sendCompanyMilestone(
+          user.email,
+          user.username,
+          companyName,
+          message
+        );
+      default:
+        return await EmailService.sendEmail({
+          to: user.email,
+          subject: title,
+          text: message
+        });
+    }
+  }
+
+  private static async sendSMSNotification(notification: Notification & { 
+    user: UserWithPreferences;
+    relatedCompany?: { id: string; name: string } | null;
+  }): Promise<boolean> {
+    const { user, type, message, relatedCompany } = notification;
+    const companyName = relatedCompany?.name || 'Unknown Company';
+
+    switch (type) {
+      case 'MEETING_REMINDER':
+        return await SMSService.sendMeetingReminder(
+          user.phoneNumber,
+          user.username,
+          companyName,
+          notification.scheduledFor
+        );
+      case 'AUDIT_DUE':
+        return await SMSService.sendAuditReminder(
+          user.phoneNumber,
+          user.username,
+          companyName,
+          notification.scheduledFor
+        );
+      case 'COMPANY_MILESTONE':
+        return await SMSService.sendCompanyMilestone(
+          user.phoneNumber,
+          user.username,
+          companyName,
+          message
+        );
+      default:
+        return await SMSService.sendSMS({
+          to: user.phoneNumber,
+          message: `${notification.title}: ${message}`
+        });
+    }
+  }
+
+  static async processScheduledNotifications(): Promise<void> {
+    try {
+      const scheduledNotifications = await NotificationModel.getScheduledNotifications();
+      
+      console.log(`Processing ${scheduledNotifications.length} scheduled notifications`);
+
+      for (const notification of scheduledNotifications) {
+        try {
+          await this.sendNotification(notification as any);
+          console.log(`Processed notification ${notification.id}`);
+        } catch (error) {
+          console.error(`Error processing notification ${notification.id}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing scheduled notifications:', error);
+    }
+  }
+
+  static async createMeetingReminder(
+    userId: string,
+    companyId: string,
+    scheduledFor: Date
+  ): Promise<Notification> {
+    return await this.createNotification({
+      userId,
+      type: 'MEETING_REMINDER',
+      title: 'Meeting Reminder',
+      message: 'You have a scheduled meeting with this company.',
+      scheduledFor,
+      relatedCompanyId: companyId
+    });
+  }
+
+  static async createAuditReminder(
+    userId: string,
+    companyId: string,
+    scheduledFor: Date
+  ): Promise<Notification> {
+    return await this.createNotification({
+      userId,
+      type: 'AUDIT_DUE',
+      title: 'Audit Due',
+      message: 'An audit is due for this company.',
+      scheduledFor,
+      relatedCompanyId: companyId
+    });
+  }
+
+  static async createCompanyMilestone(
+    userId: string,
+    companyId: string,
+    milestone: string,
+    scheduledFor: Date = new Date()
+  ): Promise<Notification> {
+    return await this.createNotification({
+      userId,
+      type: 'COMPANY_MILESTONE',
+      title: 'Company Milestone',
+      message: milestone,
+      scheduledFor,
+      relatedCompanyId: companyId
+    });
+  }
+
+  /**
+   * Create customizable meeting reminder with specific timing
+   */
+  static async createCustomMeetingReminder(
+    userId: string,
+    companyId: string,
+    scheduledFor: Date,
+    customMessage?: string,
+    reminderSettings?: {
+      title?: string;
+      additionalRecipients?: string[]; // Additional user IDs to notify
+      priority?: 'LOW' | 'NORMAL' | 'HIGH';
+    }
+  ): Promise<Notification[]> {
+    const notifications: Notification[] = [];
+    
+    // Create notification for primary user
+    const primaryNotification = await this.createNotification({
+      userId,
+      type: 'MEETING_REMINDER',
+      title: reminderSettings?.title || 'Meeting Reminder',
+      message: customMessage || 'You have a scheduled meeting with this company.',
+      scheduledFor,
+      relatedCompanyId: companyId
+    });
+    notifications.push(primaryNotification);
+
+    // Create notifications for additional recipients if specified
+    if (reminderSettings?.additionalRecipients) {
+      for (const recipientId of reminderSettings.additionalRecipients) {
+        try {
+          const additionalNotification = await this.createNotification({
+            userId: recipientId,
+            type: 'MEETING_REMINDER',
+            title: reminderSettings?.title || 'Meeting Reminder (CC)',
+            message: customMessage || 'A meeting has been scheduled with this company.',
+            scheduledFor,
+            relatedCompanyId: companyId
+          });
+          notifications.push(additionalNotification);
+        } catch (error) {
+          console.error(`Failed to create notification for recipient ${recipientId}:`, error);
+        }
+      }
+    }
+
+    return notifications;
+  }
+
+  /**
+   * Update notification timing for existing notifications
+   */
+  static async updateNotificationTiming(
+    notificationId: string,
+    newScheduledFor: Date
+  ): Promise<Notification> {
+    // Check if notification exists and hasn't been sent yet
+    const notification = await NotificationModel.findById(notificationId);
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+
+    if (notification.sentAt) {
+      throw new Error('Cannot update timing for already sent notification');
+    }
+
+    return await NotificationModel.update(notificationId, {
+      scheduledFor: newScheduledFor
+    } as any);
+  }
+
+  /**
+   * Get notification delivery statistics
+   */
+  static async getDeliveryStats(filters?: {
+    userId?: string;
+    companyId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+  }): Promise<{
+    total: number;
+    successful: number;
+    failed: number;
+    pending: number;
+    successRate: number;
+  }> {
+    return await NotificationLogModel.getDeliveryStats(filters);
+  }
+
+  /**
+   * Get notification history for a user or company
+   */
+  static async getNotificationHistory(
+    filters: {
+      userId?: string;
+      companyId?: string;
+      type?: NotificationType;
+      dateFrom?: Date;
+      dateTo?: Date;
+    },
+    limit = 50,
+    offset = 0
+  ): Promise<any[]> {
+    return await NotificationLogModel.getHistory(filters, limit, offset);
+  }
+
+  /**
+   * Bulk create meeting reminders for multiple companies
+   */
+  static async bulkCreateMeetingReminders(
+    userId: string,
+    companyIds: string[],
+    scheduledFor: Date,
+    customMessage?: string
+  ): Promise<Notification[]> {
+    const notifications: Notification[] = [];
+
+    for (const companyId of companyIds) {
+      try {
+        const notification = await this.createMeetingReminder(
+          userId,
+          companyId,
+          scheduledFor
+        );
+        notifications.push(notification);
+      } catch (error) {
+        console.error(`Failed to create meeting reminder for company ${companyId}:`, error);
+      }
+    }
+
+    return notifications;
+  }
+
+  /**
+   * Cancel scheduled notification
+   */
+  static async cancelNotification(notificationId: string): Promise<void> {
+    const notification = await NotificationModel.findById(notificationId);
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+
+    if (notification.sentAt) {
+      throw new Error('Cannot cancel already sent notification');
+    }
+
+    await NotificationModel.delete(notificationId);
+  }
+}

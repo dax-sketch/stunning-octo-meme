@@ -1,0 +1,315 @@
+import { AuditModel, CreateAuditData, UpdateAuditData, AuditFilters } from '../models/Audit';
+import { CompanyModel } from '../models/Company';
+import { NotificationService } from './notificationService';
+import { Audit, AuditStatus, CompanyTier } from '@prisma/client';
+
+export interface AuditScheduleConfig {
+  companyId: string;
+  assignedTo: string;
+}
+
+export class AuditService {
+  constructor() {
+    // NotificationService methods are static, no need for instance
+  }
+
+  /**
+   * Create a new audit
+   */
+  async createAudit(data: CreateAuditData): Promise<Audit> {
+    // Validate that company and assignee exist
+    const company = await CompanyModel.findById(data.companyId);
+    if (!company) {
+      throw new Error('Company not found');
+    }
+
+    const audit = await AuditModel.create(data);
+
+    // Schedule notification for the audit
+    await this.scheduleAuditNotification(audit);
+
+    return audit;
+  }
+
+  /**
+   * Get audit by ID
+   */
+  async getAuditById(id: string): Promise<Audit | null> {
+    return await AuditModel.findById(id);
+  }
+
+  /**
+   * Get all audits with filtering
+   */
+  async getAudits(filters: AuditFilters = {}): Promise<Audit[]> {
+    return await AuditModel.findMany(filters);
+  }
+
+  /**
+   * Update audit
+   */
+  async updateAudit(id: string, data: UpdateAuditData): Promise<Audit | null> {
+    const existingAudit = await AuditModel.findById(id);
+    if (!existingAudit) {
+      throw new Error('Audit not found');
+    }
+
+    const updatedAudit = await AuditModel.update(id, data);
+
+    // If scheduled date changed, update notification
+    if (data.scheduledDate && updatedAudit) {
+      await this.scheduleAuditNotification(updatedAudit);
+    }
+
+    return updatedAudit;
+  }
+
+  /**
+   * Delete audit
+   */
+  async deleteAudit(id: string): Promise<boolean> {
+    return await AuditModel.delete(id);
+  }
+
+  /**
+   * Get audits for a specific company
+   */
+  async getAuditsByCompany(companyId: string): Promise<Audit[]> {
+    return await AuditModel.findByCompanyId(companyId);
+  }
+
+  /**
+   * Mark audit as completed
+   */
+  async completeAudit(id: string, notes?: string): Promise<Audit | null> {
+    const audit = await AuditModel.markCompleted(id, notes);
+    
+    if (audit) {
+      // Schedule next audit for the company
+      await this.scheduleNextAudit(audit.companyId, audit.assignedTo);
+    }
+
+    return audit;
+  }
+
+  /**
+   * Calculate next audit date based on company age
+   * Requirements 7.1, 7.2, 7.3: Weekly for <3 months, Monthly for 3-12 months, Quarterly for >1 year
+   */
+  calculateNextAuditDate(companyStartDate: Date, currentDate: Date = new Date()): Date {
+    const ageInMonths = this.getCompanyAgeInMonths(companyStartDate, currentDate);
+    const nextAuditDate = new Date(currentDate);
+
+    if (ageInMonths < 3) {
+      // Weekly audits for companies less than 3 months old
+      nextAuditDate.setDate(currentDate.getDate() + 7);
+    } else if (ageInMonths < 12) {
+      // Monthly audits for companies 3-12 months old
+      nextAuditDate.setMonth(currentDate.getMonth() + 1);
+    } else {
+      // Quarterly audits for companies over 1 year old
+      nextAuditDate.setMonth(currentDate.getMonth() + 3);
+    }
+
+    return nextAuditDate;
+  }
+
+  /**
+   * Get company age in months
+   */
+  private getCompanyAgeInMonths(startDate: Date, currentDate: Date = new Date()): number {
+    const yearDiff = currentDate.getFullYear() - startDate.getFullYear();
+    const monthDiff = currentDate.getMonth() - startDate.getMonth();
+    return yearDiff * 12 + monthDiff;
+  }
+
+  /**
+   * Schedule initial audits for a new company
+   */
+  async scheduleInitialAudits(config: AuditScheduleConfig): Promise<Audit[]> {
+    const company = await CompanyModel.findById(config.companyId);
+    if (!company) {
+      throw new Error('Company not found');
+    }
+
+    const audits: Audit[] = [];
+    const currentDate = new Date();
+    
+    // Schedule first audit
+    const firstAuditDate = this.calculateNextAuditDate(company.startDate, currentDate);
+    
+    const firstAudit = await this.createAudit({
+      companyId: config.companyId,
+      scheduledDate: firstAuditDate,
+      assignedTo: config.assignedTo,
+      notes: 'Initial audit scheduled based on company age',
+    });
+
+    audits.push(firstAudit);
+
+    return audits;
+  }
+
+  /**
+   * Schedule next audit for a company after completion
+   */
+  async scheduleNextAudit(companyId: string, assignedTo: string): Promise<Audit> {
+    const company = await CompanyModel.findById(companyId);
+    if (!company) {
+      throw new Error('Company not found');
+    }
+
+    const nextAuditDate = this.calculateNextAuditDate(company.startDate);
+
+    return await this.createAudit({
+      companyId,
+      scheduledDate: nextAuditDate,
+      assignedTo,
+      notes: 'Automatically scheduled after previous audit completion',
+    });
+  }
+
+  /**
+   * Update audit schedules for all companies based on their current age
+   * Requirement 7.4: Automatic audit schedule updates when company ages
+   */
+  async updateAuditSchedulesForAllCompanies(): Promise<{ updated: number; created: number }> {
+    const companies = await CompanyModel.findMany();
+    let updatedCount = 0;
+    let createdCount = 0;
+
+    for (const company of companies) {
+      try {
+        // Get existing scheduled audits for this company
+        const existingAudits = await AuditModel.findMany({
+          companyId: company.id,
+          status: AuditStatus.SCHEDULED,
+        });
+
+        // Calculate what the audit frequency should be based on current company age
+        const currentAgeInMonths = this.getCompanyAgeInMonths(company.startDate);
+        const expectedNextAuditDate = this.calculateNextAuditDate(company.startDate);
+
+        // If no scheduled audits exist, create one
+        if (existingAudits.length === 0) {
+          await this.createAudit({
+            companyId: company.id,
+            scheduledDate: expectedNextAuditDate,
+            assignedTo: company.createdBy, // Default to company creator
+            notes: 'Automatically scheduled during audit schedule update',
+          });
+          createdCount++;
+        } else {
+          // Check if existing audit schedule needs updating based on company age
+          const nextScheduledAudit = existingAudits[0];
+          if (nextScheduledAudit) {
+            const shouldReschedule = this.shouldRescheduleAudit(
+              company.startDate,
+              nextScheduledAudit.scheduledDate
+            );
+
+            if (shouldReschedule) {
+              await AuditModel.update(nextScheduledAudit.id, {
+              scheduledDate: expectedNextAuditDate,
+              notes: `Rescheduled due to company age change (${currentAgeInMonths} months old)`,
+            });
+            updatedCount++;
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error updating audit schedule for company ${company.id}:`, error);
+      }
+    }
+
+    return { updated: updatedCount, created: createdCount };
+  }
+
+  /**
+   * Determine if an audit should be rescheduled based on company age
+   */
+  private shouldRescheduleAudit(companyStartDate: Date, currentScheduledDate: Date): boolean {
+    const expectedDate = this.calculateNextAuditDate(companyStartDate);
+    const daysDifference = Math.abs(
+      (expectedDate.getTime() - currentScheduledDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Reschedule if the difference is more than 3 days
+    return daysDifference > 3;
+  }
+
+  /**
+   * Get overdue audits and mark them as overdue
+   */
+  async processOverdueAudits(): Promise<{ audits: Audit[]; markedCount: number }> {
+    const overdueAudits = await AuditModel.findOverdue();
+    const markedCount = await AuditModel.markOverdueAudits();
+
+    // Send notifications for overdue audits
+    for (const audit of overdueAudits) {
+      await NotificationService.createNotification({
+        userId: audit.assignedTo,
+        type: 'AUDIT_DUE',
+        title: 'Overdue Audit',
+        message: `Audit for ${(audit as any).company?.name || 'Unknown Company'} was due on ${audit.scheduledDate.toDateString()}`,
+        relatedCompanyId: audit.companyId,
+        scheduledFor: new Date(),
+      });
+    }
+
+    return { audits: overdueAudits, markedCount };
+  }
+
+  /**
+   * Get upcoming audits
+   */
+  async getUpcomingAudits(days: number = 7): Promise<Audit[]> {
+    return await AuditModel.findUpcoming(days);
+  }
+
+  /**
+   * Schedule audit notification
+   */
+  private async scheduleAuditNotification(audit: Audit): Promise<void> {
+    // Schedule notification 1 day before audit
+    const notificationDate = new Date(audit.scheduledDate);
+    notificationDate.setDate(notificationDate.getDate() - 1);
+
+    await NotificationService.createNotification({
+      userId: audit.assignedTo,
+      type: 'AUDIT_DUE',
+      title: 'Upcoming Audit',
+      message: `Audit for ${(audit as any).company?.name || 'Unknown Company'} is scheduled for ${audit.scheduledDate.toDateString()}`,
+      relatedCompanyId: audit.companyId,
+      scheduledFor: notificationDate,
+    });
+  }
+
+  /**
+   * Get audit statistics
+   */
+  async getAuditStatistics(): Promise<{
+    total: number;
+    scheduled: number;
+    completed: number;
+    overdue: number;
+    upcomingWeek: number;
+  }> {
+    const [allAudits, overdueAudits, upcomingAudits] = await Promise.all([
+      AuditModel.findMany(),
+      AuditModel.findOverdue(),
+      AuditModel.findUpcoming(7),
+    ]);
+
+    const scheduled = allAudits.filter(audit => audit.status === AuditStatus.SCHEDULED).length;
+    const completed = allAudits.filter(audit => audit.status === AuditStatus.COMPLETED).length;
+
+    return {
+      total: allAudits.length,
+      scheduled,
+      completed,
+      overdue: overdueAudits.length,
+      upcomingWeek: upcomingAudits.length,
+    };
+  }
+}

@@ -1,0 +1,200 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  phoneNumber String
+  password  String
+  role      UserRole @default(TEAM_MEMBER)
+  
+  // Notification preferences
+  emailNotifications    Boolean @default(true)
+  smsNotifications      Boolean @default(true)
+  meetingReminders      Boolean @default(true)
+  auditReminders        Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  companies Company[]
+  notes     Note[]
+  audits    Audit[]
+  notifications Notification[]
+  tierChangeLogs TierChangeLog[]
+  
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  startDate   DateTime
+  phoneNumber String
+  email       String
+  website     String?
+  tier        CompanyTier @default(TIER_2)
+  adSpend     Float    @default(0)
+  
+  // Payment tracking
+  lastPaymentDate   DateTime?
+  lastPaymentAmount Float?
+  
+  // Meeting tracking
+  lastMeetingDate      DateTime?
+  lastMeetingAttendees String[]
+  lastMeetingDuration  Int? // in minutes
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  createdBy String
+  creator   User   @relation(fields: [createdBy], references: [id])
+  notes     Note[]
+  audits    Audit[]
+  notifications Notification[]
+  tierChangeLogs TierChangeLog[]
+  
+  @@index([tier])
+  @@index([createdBy])
+  @@index([startDate])
+  @@index([createdAt])
+  @@index([name])
+  @@index([email])
+  @@index([adSpend])
+  @@index([tier, createdAt])
+  @@index([createdBy, tier])
+  @@map("companies")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  
+  @@index([companyId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([companyId, createdAt])
+  @@map("notes")
+}
+
+model Audit {
+  id            String      @id @default(cuid())
+  scheduledDate DateTime
+  completedDate DateTime?
+  status        AuditStatus @default(SCHEDULED)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignedTo String
+  assignee   User    @relation(fields: [assignedTo], references: [id])
+  
+  @@index([companyId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([status, scheduledDate])
+  @@index([companyId, status])
+  @@map("audits")
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  scheduledFor DateTime
+  sentAt      DateTime?
+  createdAt   DateTime         @default(now())
+  
+  // Relations
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  relatedCompanyId String?
+  relatedCompany   Company? @relation(fields: [relatedCompanyId], references: [id])
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([scheduledFor])
+  @@index([type])
+  @@index([userId, isRead])
+  @@index([userId, scheduledFor])
+  @@map("notifications")
+}
+
+model TierChangeLog {
+  id        String   @id @default(cuid())
+  oldTier   CompanyTier
+  newTier   CompanyTier
+  reason    TierChangeReason
+  notes     String?
+  createdAt DateTime @default(now())
+  
+  // Relations
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  changedBy String?
+  changedByUser User? @relation(fields: [changedBy], references: [id])
+  
+  @@index([companyId])
+  @@index([createdAt])
+  @@index([companyId, createdAt])
+  @@map("tier_change_logs")
+}
+
+enum UserRole {
+  CEO
+  MANAGER
+  TEAM_MEMBER
+}
+
+enum CompanyTier {
+  TIER_1 // High ad spend
+  TIER_2 // New companies
+  TIER_3 // Old companies with low ad spend
+}
+
+enum AuditStatus {
+  SCHEDULED
+  COMPLETED
+  OVERDUE
+}
+
+enum NotificationType {
+  MEETING_REMINDER
+  AUDIT_DUE
+  COMPANY_MILESTONE
+}
+
+enum TierChangeReason {
+  AUTOMATIC
+  MANUAL_OVERRIDE
+}

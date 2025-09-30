@@ -1,0 +1,23 @@
+{
+  "name": "client-management-platform",
+  "version": "1.0.0",
+  "description": "Client Management Platform for advertising companies",
+  "scripts": {
+    "install:all": "cd backend && npm ci && cd ../frontend && npm ci",
+    "build:all": "cd backend && npm run build && cd ../frontend && npm run build",
+    "test:all": "cd backend && npm run test:all && cd ../frontend && npm run test:coverage",
+    "deploy:check": "bash scripts/full-deployment.sh",
+    "deploy:frontend": "bash scripts/deploy-frontend.sh",
+    "deploy:backend": "bash scripts/deploy-backend.sh",
+    "health:check": "bash scripts/health-check.sh"
+  },
+  "keywords": [
+    "client-management",
+    "react",
+    "express",
+    "typescript",
+    "supabase"
+  ],
+  "author": "",
+  "license": "MIT"
+}
