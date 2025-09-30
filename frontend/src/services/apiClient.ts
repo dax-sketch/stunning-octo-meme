@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 export interface ApiError {
   success: false;
@@ -25,7 +26,7 @@ declare module 'axios' {
 
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
-  baseURL: `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api`,
+  baseURL: `${API_BASE_URL}/api`,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -71,7 +72,7 @@ apiClient.interceptors.response.use(
 
         try {
           const response = await axios.post(
-            `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/refresh`,
+            `${API_BASE_URL}/api/auth/refresh`,
             { refreshToken }
           );
 
