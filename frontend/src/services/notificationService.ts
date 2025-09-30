@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { RecentNotification } from '../types/dashboard';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+import { API_BASE_URL } from '../config/api';
 
 const notificationAPI = axios.create({
   baseURL: `${API_BASE_URL}/api/notifications`,

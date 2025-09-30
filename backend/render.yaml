@@ -25,6 +25,14 @@ services:
         sync: false
       - key: TWILIO_AUTH_TOKEN
         sync: false
+      - key: APPWRITE_ENDPOINT
+        value: https://cloud.appwrite.io/v1
+      - key: APPWRITE_PROJECT_ID
+        sync: false
+      - key: APPWRITE_API_KEY
+        sync: false
+      - key: APPWRITE_DATABASE_ID
+        value: client-management
 
 databases:
   - name: client-management-db

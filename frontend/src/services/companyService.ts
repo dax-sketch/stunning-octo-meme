@@ -5,8 +5,7 @@ import {
   CompanyFilters,
   CompanyResponse,
 } from '../types/company';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+import { API_BASE_URL } from '../config/api';
 
 const companyAPI = axios.create({
   baseURL: `${API_BASE_URL}/api/companies`,

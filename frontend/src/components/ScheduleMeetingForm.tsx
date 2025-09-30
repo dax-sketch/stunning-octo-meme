@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import {
   Box,
   Button,
@@ -114,7 +115,7 @@ export const ScheduleMeetingForm: React.FC<ScheduleMeetingFormProps> = ({
       // For now, we'll create a simple API call
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/users`,
+        `${API_BASE_URL}/api/users`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

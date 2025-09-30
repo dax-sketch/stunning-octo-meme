@@ -26,7 +26,16 @@ const PORT = process.env.PORT || 3001;
 
 // Security middleware
 app.use(helmet());
-app.use(cors());
+
+// CORS configuration - temporarily allow all origins for debugging
+const corsOptions = {
+  origin: true, // Allow all origins temporarily
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 // app.use(rateLimit(rateLimitConfig));
 
 // Body parsing middleware

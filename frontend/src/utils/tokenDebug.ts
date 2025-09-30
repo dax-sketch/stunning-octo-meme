@@ -1,4 +1,5 @@
 // Utility to help debug token issues
+import { API_BASE_URL } from '../config/api';
 export const tokenDebug = {
   // Check if token is expired
   isTokenExpired(token: string): boolean {
@@ -80,7 +81,7 @@ export const tokenDebug = {
     try {
       console.log('🔄 Testing token refresh...');
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/refresh`,
+        `${API_BASE_URL}/api/auth/refresh`,
         {
           method: 'POST',
           headers: {

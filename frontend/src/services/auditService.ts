@@ -6,8 +6,7 @@ import {
   AuditResponse,
   AuditStatistics,
 } from '../types/audit';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+import { API_BASE_URL } from '../config/api';
 
 const auditAPI = axios.create({
   baseURL: `${API_BASE_URL}/api/audits`,
